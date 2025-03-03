@@ -1,27 +1,37 @@
+from flask import Flask
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
+import asyncio
 
-# টোকেন আপনার বটের টোকেন দিয়ে প্রতিস্থাপন করুন
+app = Flask(__name__)
+
+# টেলিগ্রাম বটের টোকেন
 TOKEN = '7791721807:AAFXMz-wyzDjIeqbTdaUYPTP2_HPjmRnv94'
 
-# /start কমান্ডের জন্য হ্যান্ডলার
+# Flask রুট
+@app.route('/')
+def home():
+    return "Welcome to my Telegram Bot and About Me Page!"
+
+@app.route('/about')
+def about():
+    return "This is the About Me page. Here you can write something about yourself."
+
+# টেলিগ্রাম বটের হ্যান্ডলার
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text('হ্যালো! আমি আপনার টেলিগ্রাম বট।')
+    await update.message.reply_text('Hello! I am your Telegram Bot.')
 
-# /about কমান্ডের জন্য হ্যান্ডলার
-async def about(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text('আমি একটি টেলিগ্রাম বট। আমার সম্পর্কে আরও তথ্য এখানে।')
+async def about_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text('This is the About Me section of the bot.')
 
-def main():
-    # অ্যাপ্লিকেশন তৈরি করুন
+def run_bot():
     application = Application.builder().token(TOKEN).build()
-
-    # কমান্ড হ্যান্ডলার যোগ করুন
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("about", about))
-
-    # বট চালু করুন
+    application.add_handler(CommandHandler("about", about_bot))
     application.run_polling()
 
 if __name__ == '__main__':
-    main()
+    # টেলিগ্রাম বট এবং Flask সার্ভার একসাথে চালু করুন
+    import threading
+    threading.Thread(target=run_bot).start()
+    app.run(host='0.0.0.0', port=5000)
