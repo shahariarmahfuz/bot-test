@@ -1,59 +1,38 @@
-import logging
 import os
-import asyncio
-from fastapi import FastAPI
+from flask import Flask
 from telegram import Update
-from telegram.ext import Application, CommandHandler
-import uvicorn
+from telegram.ext import Application, CommandHandler, ContextTypes
+import threading
 
-# টেলিগ্রাম বট টোকেন, Render environment variable থেকে সরাসরি নেব
-TOKEN = os.getenv("BOT_TOKEN")
+# Flask অ্যাপ ইনিশিয়ালাইজ করুন
+app = Flask(__name__)
 
-# লগ সেটআপ
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
-logger = logging.getLogger(__name__)
+# টেলিগ্রাম বট টোকেন (Render.com এ environment variable হিসেবে সেট করুন)
+TOKEN = os.environ.get('BOT_TOKEN')
 
-# FastAPI অ্যাপ তৈরি
-app = FastAPI()
-
-@app.get("/")
+# Flask রুটস
+@app.route('/')
 def home():
-    return {"message": "🚀 Welcome to My Telegram Bot API!"}
+    return "বট সচল রয়েছে! ✅"
 
-@app.get("/about")
+@app.route('/about')
 def about():
-    return {"message": "ℹ️ আমি Render-এ হোস্ট করা একটি টেলিগ্রাম বট।"}
+    return "আমার সম্পর্কে তথ্য: আমি একজন ডেভেলপার, টেলিগ্রাম বট বানাতে পছন্দ করি।"
 
-# Start Command Handler (Telegram Bot)
-async def start(update: Update, context):
-    await update.message.reply_text("👋 হ্যালো! আমি তোমার টেলিগ্রাম বট।")
+# টেলিগ্রাম বট হ্যান্ডলার
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("হ্যালো! আমি আপনার বট। /about লিখে আমার সম্পর্কে জানুন।")
 
-# About Command Handler (Telegram Bot)
-async def about(update: Update, context):
-    await update.message.reply_text("ℹ️ আমি Render-এ হোস্ট করা একটি টেলিগ্রাম বট।")
+def run_bot():
+    """টেলিগ্রাম বট রান করুন"""
+    application = Application.builder().token(TOKEN).build()
+    application.add_handler(CommandHandler("start", start))
+    application.run_polling()
 
-# টেলিগ্রাম বট অ্যাপ তৈরি
-async def start_telegram_bot():
-    # অ্যাপ্লিকেশন তৈরি করুন
-    app_bot = Application.builder().token(TOKEN).build()
-
-    # হ্যান্ডলার যোগ করুন
-    app_bot.add_handler(CommandHandler("start", start))
-    app_bot.add_handler(CommandHandler("about", about))
-
-    # বট চালু করুন
-    print("🚀 Telegram Bot is running...")
-    await app_bot.run_polling()
-
-# FastAPI সার্ভার চালু করার জন্য
-def start_fastapi_server():
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-
-if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-
-    # FastAPI সার্ভার এবং Telegram বটকে একই সাথে চালানো
-    loop.create_task(start_telegram_bot())  # টেলিগ্রাম বট
-    loop.create_task(start_fastapi_server())  # FastAPI সার্ভার
-
-    loop.run_forever()  # ইভেন্ট লুপ চালু রাখুন
+if __name__ == '__main__':
+    # বটকে আলাদা থ্রেডে রান করুন
+    bot_thread = threading.Thread(target=run_bot)
+    bot_thread.start()
+    
+    # Flask অ্যাপ রান করুন
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
